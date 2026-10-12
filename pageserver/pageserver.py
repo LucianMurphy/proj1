@@ -91,8 +91,32 @@ def respond(sock):
 
     parts = request.split()
     if len(parts) > 1 and parts[0] == "GET":
-        transmit(STATUS_OK, sock)
-        transmit(CAT, sock)
+        url = parts[1]
+        if "~" in url or "//" in url or ".." in url:
+            log.info("Forbidden Access: {}".format(url))
+            transmit(STATUS_FORBIDDEN, sock)
+            transmit("403 Forbidden\n", sock)
+
+        elif(url.endswith(".html") or url.endswith(".css")):
+            if "./pages" in url:
+                local_path = url
+            else:
+                local_path = "./pages" + url
+                try:
+                    with open(local_path, 'r') as file:
+                        content = file.read()
+                    transmit(STATUS_OK, sock)
+                    transmit(content, sock)
+                except IOError:
+                    log.info("File Not Found: {}".format(local_path))
+                    transmit(STATUS_NOT_FOUND, sock)
+                    transmit("404 Not Found\n", sock)
+
+            
+        # else:
+
+        #     transmit(STATUS_OK, sock)
+        #     transmit(CAT, sock)
     else:
         log.info("Unhandled request: {}".format(request))
         transmit(STATUS_NOT_IMPLEMENTED, sock)
